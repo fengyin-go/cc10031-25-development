@@ -25,6 +25,7 @@ from app.services.anomaly_log import AnomalyLogService
 from app.services.scheduler import SchedulerService
 from app.services.report_dashboard import ReportDashboardService
 from app.services.task_queue import TaskQueueService
+from app.services.env_binding import EnvBindingService, env_binding_service
 from app.services.runtime_session import RuntimeSessionService, runtime_session
 from app.services.callback_hook import CallbackHookService, callback_hook
 from app.services.pipeline import (  # noqa: F401
@@ -65,6 +66,7 @@ SERVICES: dict[str, BaseModuleService] = {
     "scheduler": SchedulerService(),
     "report_dashboard": ReportDashboardService(),
     "task_queue": TaskQueueService(),
+    "env_binding": EnvBindingService(),
 }
 
 

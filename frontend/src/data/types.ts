@@ -18,6 +18,12 @@ export type ModuleMeta = {
   actions: string[]
   actionTargets: Record<string, string>
   metrics: string[]
+  /** 登记弹窗实际采集的字段；缺省时与 fields 一致（派生字段可不登记） */
+  createFields?: string[]
+  /** 登记弹窗中的必填字段；缺省时 createFields 全部必填 */
+  createRequired?: string[]
+  /** 登记弹窗中以下拉选择录入的字段及其候选值 */
+  createOptions?: Record<string, string[]>
 }
 
 export type PageResult = {

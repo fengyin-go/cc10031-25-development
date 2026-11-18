@@ -136,6 +136,43 @@ def runtime_sessions() -> dict[str, object]:
     return {"count": len(sessions), "sessions": sessions}
 
 
+# ---- 可执行环境绑定（处理项虎） ----
+
+@app.get("/api/env-bindings/runtime")
+def env_binding_runtime(target_system: str | None = Query(default=None)) -> dict[str, object]:
+    """运行时会话加载处理项关联的可执行环境绑定清单。
+
+    只返回生效中且凭据未吊销、环境未退役的绑定，按目标系统筛选。
+    """
+    from app.services.env_binding import env_binding_service
+
+    items = env_binding_service.load_runtime_bindings(target_system)
+    return {"count": len(items), "items": items}
+
+
+@app.post("/api/env-bindings/start-sessions")
+def env_binding_start_sessions(target_system: str | None = Query(default=None)) -> dict[str, object]:
+    """按目标系统和环境版本启自动化会话，会话回带凭据来源与环境版本。"""
+    result = runtime_session.start_sessions_from_bindings(target_system)
+    return {"ok": True, **result}
+
+
+@app.get("/api/env-bindings/reconcile")
+def env_binding_reconcile() -> dict[str, object]:
+    """处理台账与结果清单联动核对：重复提交去重、失效绑定检测。"""
+    from app.services.env_binding import env_binding_service
+
+    return env_binding_service.reconcile()
+
+
+@app.get("/api/env-bindings/result-view")
+def env_binding_result_view() -> dict[str, object]:
+    """概览看板展示的可执行环境绑定结果视图。"""
+    from app.services.env_binding import env_binding_service
+
+    return env_binding_service.result_view()
+
+
 # ---- 跨模块数据流编排入口 ----
 
 @app.post("/api/pipeline/rpa-lifecycle")

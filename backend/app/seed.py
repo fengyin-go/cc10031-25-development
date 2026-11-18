@@ -665,3 +665,114 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '排队时长': '任务队列样例3',
   '当前状态': '任务队列样例3'}]
 }
+
+# ---------------------------------------------------------------------------
+# 可执行环境绑定（env_binding）种子数据
+# 凭据与环境此前分别维护，这里补充同一目标系统下的真实凭据/环境组合，
+# 并预置一张可执行环境绑定清单，覆盖正常、即将过期、刚轮换等冲突场景。
+# ---------------------------------------------------------------------------
+
+_NEXT_CRED_ID = max(int(r["id"]) for r in SEED_ROWS["credential_store"]) + 1
+_NEXT_ENV_ID = max(int(r["id"]) for r in SEED_ROWS["env_profile"]) + 1
+
+# 同一目标系统成对出现：即将过期的旧凭据 + 刚轮换的新凭据
+SEED_ROWS["credential_store"].extend([
+    {
+        "id": _NEXT_CRED_ID, "status": "即将过期", "pending": True, "abnormal": True,
+        "凭据名称": "电商平台A-采集账号(旧)", "目标系统": "电商平台A",
+        "认证方式": "账号密码", "账户标识": "rpa_a_legacy",
+        "有效期": "2026-11-25", "轮换周期": "90天", "最后使用": "2026-11-17",
+    },
+    {
+        "id": _NEXT_CRED_ID + 1, "status": "正常", "pending": True, "abnormal": False,
+        "凭据名称": "电商平台A-采集账号(新)", "目标系统": "电商平台A",
+        "认证方式": "账号密码", "账户标识": "rpa_a_rotated",
+        "有效期": "2027-02-20", "轮换周期": "90天", "最后使用": "2026-11-18",
+    },
+    {
+        "id": _NEXT_CRED_ID + 2, "status": "正常", "pending": True, "abnormal": False,
+        "凭据名称": "政务数据网-申报凭据", "目标系统": "政务数据网",
+        "认证方式": "数字证书", "账户标识": "gov_cert_07",
+        "有效期": "2027-05-01", "轮换周期": "180天", "最后使用": "2026-11-16",
+    },
+    {
+        "id": _NEXT_CRED_ID + 3, "status": "已吊销", "pending": False, "abnormal": True,
+        "凭据名称": "供应商门户-停用凭据", "目标系统": "供应商门户",
+        "认证方式": "API Token", "账户标识": "vendor_token_revoked",
+        "有效期": "2026-10-31", "轮换周期": "60天", "最后使用": "2026-10-30",
+    },
+])
+
+SEED_ROWS["env_profile"].extend([
+    {
+        "id": _NEXT_ENV_ID, "status": "可用", "pending": True, "abnormal": False,
+        "环境名称": "Chrome生产环境-124", "浏览器版本": "Chrome 124.0.6367",
+        "操作系统": "Windows Server 2022", "网络代理": "华东代理池",
+        "分辨率": "1920x1080", "插件列表": "指纹插件,PDF插件", "沙箱模式": "开启",
+    },
+    {
+        "id": _NEXT_ENV_ID + 1, "status": "可用", "pending": True, "abnormal": False,
+        "环境名称": "Chrome验证环境-126", "浏览器版本": "Chrome 126.0.6478",
+        "操作系统": "Ubuntu 22.04", "网络代理": "华北代理池",
+        "分辨率": "1366x768", "插件列表": "指纹插件", "沙箱模式": "开启",
+    },
+    {
+        "id": _NEXT_ENV_ID + 2, "status": "已退役", "pending": False, "abnormal": True,
+        "环境名称": "旧版Firefox环境-115", "浏览器版本": "Firefox 115 ESR",
+        "操作系统": "Windows Server 2019", "网络代理": "无",
+        "分辨率": "1920x1080", "插件列表": "无", "沙箱模式": "关闭",
+    },
+])
+
+
+def _cred(cred_id: int) -> dict[str, Any]:
+    return next(r for r in SEED_ROWS["credential_store"] if r["id"] == cred_id)
+
+
+def _env(env_id: int) -> dict[str, Any]:
+    return next(r for r in SEED_ROWS["env_profile"] if r["id"] == env_id)
+
+
+def _binding_row(binding_id: int, number: int, cred_id: int, env_id: int,
+                 status: str, policy: str, terminal: str,
+                 source_batch: str, pending: bool, abnormal: bool) -> dict[str, Any]:
+    cred = _cred(cred_id)
+    env = _env(env_id)
+    return {
+        "id": binding_id,
+        "status": status,
+        "pending": pending,
+        "abnormal": abnormal,
+        "绑定编号": f"BIND-{2000 + number}",
+        "目标系统": cred["目标系统"],
+        "凭据ID": cred["id"],
+        "凭据名称": cred["凭据名称"],
+        "凭据状态": cred["status"],
+        "账户标识": cred["账户标识"],
+        "凭据有效期": cred["有效期"],
+        "环境ID": env["id"],
+        "环境名称": env["环境名称"],
+        "环境版本": env["浏览器版本"],
+        "操作系统": env["操作系统"],
+        "网络代理": env["网络代理"],
+        "处理口径": policy,
+        "生效时间": "2026-11-18T02:00:00+00:00",
+        "处理终态": terminal,
+        "来源批次": source_batch,
+        "备注": "",
+    }
+
+
+# 电商平台A：当前沿用即将过期凭据（25号处理终态=沿用至过期），新凭据待切换
+# 政务数据网：正常生效绑定；供应商门户：凭据已吊销，绑定已失效停用
+SEED_ROWS["env_binding"] = [
+    _binding_row(1, 1, _NEXT_CRED_ID, _NEXT_ENV_ID,
+                 "生效中", "沿用至过期日", "沿用至过期", "BATCH-20261118-01",
+                 pending=False, abnormal=False),
+    _binding_row(2, 2, _NEXT_CRED_ID + 2, _NEXT_ENV_ID + 1,
+                 "生效中", "生成绑定", "", "BATCH-20261118-02",
+                 pending=False, abnormal=False),
+    _binding_row(3, 3, _NEXT_CRED_ID + 3, _NEXT_ENV_ID + 2,
+                 "已失效", "停用绑定", "失效停用", "BATCH-20261031-09",
+                 pending=False, abnormal=True),
+]

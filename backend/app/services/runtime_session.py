@@ -159,6 +159,33 @@ class RuntimeSessionService:
         """列出所有运行中的会话。"""
         return list(self._sessions.values())
 
+    def start_sessions_from_bindings(
+        self, target_system: str | None = None
+    ) -> dict[str, Any]:
+        """加载处理项关联的可执行环境绑定清单，按目标系统和环境版本启自动化会话。
+
+        与 EnvBindingService.start_runtime_sessions 对齐：绑定清单中凭据与环境
+        已在同一绑定中同时确定，被吊销凭据/已退役环境对应的绑定不会被加载，
+        每个会话都回带凭据来源和环境版本，保证运行批次可回查。
+        """
+        from app.services.env_binding import env_binding_service
+
+        plan = env_binding_service.start_runtime_sessions(target_system)
+        for session in plan["sessions"]:
+            session_id = session["session_id"]
+            self._sessions[session_id] = {
+                "session_id": session_id,
+                "started_at": session["started_at"],
+                "target_system": session["target_system"],
+                "credential_source": session["credential_source"],
+                "env_version": session["env_version"],
+                "binding_id": session["binding_id"],
+                "strategies_applied": 0,
+                "actions_executed": 0,
+                "errors": 0,
+            }
+        return plan
+
     def get_session(self, session_id: str) -> dict[str, Any] | None:
         return self._sessions.get(session_id)
 

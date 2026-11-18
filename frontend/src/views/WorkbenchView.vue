@@ -73,9 +73,23 @@
     <div v-if="showCreate" class="modal-backdrop" data-testid="create-modal">
       <form class="modal" @submit.prevent="submitCreate">
         <h3>登记{{ meta.entity }}</h3>
-        <label v-for="field in meta.fields" :key="field" class="create-field">
+        <label v-for="field in formFields" :key="field" class="create-field">
           <span>{{ field }}</span>
-          <input v-model="createValues[field]" :data-testid="`create-${field}`" required />
+          <select
+            v-if="optionFields[field]"
+            v-model="createValues[field]"
+            :data-testid="`create-${field}`"
+            :required="requiredFields.includes(field)"
+          >
+            <option value="" disabled>请选择</option>
+            <option v-for="option in optionFields[field]" :key="option" :value="option">{{ option }}</option>
+          </select>
+          <input
+            v-else
+            v-model="createValues[field]"
+            :data-testid="`create-${field}`"
+            :required="requiredFields.includes(field)"
+          />
         </label>
         <div class="page-actions">
           <button class="btn" type="button" @click="showCreate = false">取消</button>
@@ -115,6 +129,10 @@ const filterFields = meta.fields.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+// 登记弹窗支持模块自定义字段、必填项与下拉选项，缺省回退到全部字段必填
+const formFields = meta.createFields ?? meta.fields
+const requiredFields = meta.createRequired ?? formFields
+const optionFields = meta.createOptions ?? {}
 const stats = computed(() => [
   { label: meta.metrics[0], value: total.value },
   { label: meta.metrics[1], value: rows.value.filter((row) => row.status === meta.statuses[1]).length },
@@ -145,12 +163,22 @@ async function exportRows() {
 }
 
 function openCreate() {
-  createValues.value = Object.fromEntries(meta.fields.map((field) => [field, '']))
+  createValues.value = Object.fromEntries(formFields.map((field) => [field, '']))
+  if (optionFields['处理口径']?.length) {
+    createValues.value['处理口径'] = '生成绑定'
+  }
   errorMessage.value = ''
   showCreate.value = true
 }
 
 async function submitCreate() {
+  const missing = requiredFields.filter(
+    (field) => !String(createValues.value[field] ?? '').trim(),
+  )
+  if (missing.length) {
+    errorMessage.value = `缺少必填字段：${missing.join('、')}`
+    return
+  }
   creating.value = true
   errorMessage.value = ''
   try {

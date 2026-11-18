@@ -106,3 +106,33 @@ export async function loadRecoveryStats(): Promise<Record<string, unknown>> {
   if (!response.ok) throw new Error('恢复状态查询失败')
   return await response.json()
 }
+
+/** 环境绑定：加载运行时可执行环境绑定清单（按目标系统筛选） */
+export async function loadRuntimeBindings(targetSystem?: string): Promise<Record<string, unknown>> {
+  const query = targetSystem ? `?target_system=${encodeURIComponent(targetSystem)}` : ''
+  const response = await request(`/api/env-bindings/runtime${query}`)
+  if (!response.ok) throw new Error('可执行环境绑定清单读取失败')
+  return await response.json()
+}
+
+/** 环境绑定：按目标系统和环境版本启动自动化会话 */
+export async function startBindingSessions(targetSystem?: string): Promise<Record<string, unknown>> {
+  const query = targetSystem ? `?target_system=${encodeURIComponent(targetSystem)}` : ''
+  const response = await request(`/api/env-bindings/start-sessions${query}`, { method: 'POST' })
+  if (!response.ok) throw new Error('自动化会话启动失败')
+  return await response.json()
+}
+
+/** 环境绑定：处理台账与结果清单联动核对 */
+export async function reconcileBindings(): Promise<Record<string, unknown>> {
+  const response = await request('/api/env-bindings/reconcile')
+  if (!response.ok) throw new Error('绑定台账核对失败')
+  return await response.json()
+}
+
+/** 环境绑定：概览看板结果视图 */
+export async function loadBindingResultView(): Promise<Record<string, unknown>> {
+  const response = await request('/api/env-bindings/result-view')
+  if (!response.ok) throw new Error('绑定结果视图读取失败')
+  return await response.json()
+}
